@@ -23,7 +23,7 @@ namespace Server
             wc.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
             Console.WriteLine(ip);
             Console.WriteLine(port);
-            wc.UploadString("http://localhost/PBL4_v2/php/addBot.php", post);
+            wc.UploadString("http://localhost:7777/PBL4/php/addBot.php", post);
                 //  Gửi yêu cầu POST đến URL với dữ liệu là nội dung chuỗi post
         }
         //--Persistence
