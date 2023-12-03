@@ -50,7 +50,16 @@ namespace Server
 
                 return response;
             }
+        }
+        public static void resetStatusBotByIpAndPort(string IpAndPort)
+        {
+            string Ip = IpAndPort.Split(':')[0];
+            string Port = IpAndPort.Split(':')[1];
+            string Id = getIdByIpAndPort(Ip,Port);
 
+            WebClient wc = new WebClient();
+            string url = "http://localhost:7777/PBL4/php/resetBotStatus.php?ID="+Id;
+            wc.DownloadData(url);
         }
     }
 }
