@@ -517,12 +517,14 @@ namespace Server
             // Console.WriteLine(base64String);
             return base64String;
         }
-        static bool IsConnected(Socket socket)
+        static bool IsConnected(Socket s)
         {
             try
             {
                 // Sử dụng poll để kiểm tra trạng thái của kết nối
-                return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+        //        return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+
+                return !((s.Poll(1000, SelectMode.SelectRead) && (s.Available == 0)) || !s.Connected);
             }
             catch (SocketException) { return false; }
         }
@@ -532,13 +534,13 @@ namespace Server
             {
                 if (IsConnected(clients.Keys.ElementAt(i).Client))
                 {
-
+                    //Console.WriteLine("Dang ket noi");
                 }
                 else
                 {
-                    //DB.resetStatusBotByIpAndPort(clients.Keys.ElementAt(i).Client.RemoteEndPoint.ToString());
-                    //clients.Remove(clients.Keys.ElementAt(i));
-                    //i--;
+                    DB.resetStatusBotByIpAndPort(clients.Keys.ElementAt(i).Client.RemoteEndPoint.ToString());
+                    clients.Remove(clients.Keys.ElementAt(i));
+                    i--;
                     Console.WriteLine("Mat ket noi");
                 }
             }
