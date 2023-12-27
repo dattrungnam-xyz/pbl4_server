@@ -214,6 +214,7 @@ namespace Server
                     sendMessageSocket(ms, clientSelected.Client);
                     if (clients.ContainsKey(clientSelected))
                     {
+                        clientSelected.Close();
                         clients.Remove(clientSelected);
                     }
                     isFinished = true;
