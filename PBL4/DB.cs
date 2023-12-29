@@ -15,8 +15,20 @@ namespace Server
 {
     internal class DB
     {
-
-        public static void insertDB(string id, string type, string detail, string content) // idBot, bảng, tên lệnh, nội dung trả về
+        public static void addNewBot(TcpClient client)
+        {
+            IPEndPoint remoteEndPoint = (IPEndPoint)client.Client.RemoteEndPoint;
+            string ip = remoteEndPoint.Address.ToString();
+            int port = remoteEndPoint.Port;
+            string post = "ip=" + ip + "&port=" + port;
+            WebClient wc = new WebClient();
+            wc.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
+            Console.WriteLine(ip);
+            Console.WriteLine(port);
+            wc.UploadString("http://localhost:7777/PBL4/php/addBot.php", post);
+            //  Gửi yêu cầu POST đến URL với dữ liệu là nội dung chuỗi post
+        }
+        public static void insertDB(string id, string type, string detail, string content) 
         {
             WebClient wc = new WebClient();
             wc.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
@@ -45,7 +57,6 @@ namespace Server
 
                 byte[] responseBytes = wc.UploadValues("http://localhost:7777/PBL4/php/getIdBotByIpAndPort.php", "POST", data);
 
-                // Convert the response bytes to a string
                 string response = Encoding.UTF8.GetString(responseBytes);
 
                 return response;
