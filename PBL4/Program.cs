@@ -91,8 +91,8 @@ namespace Server
             while (true)
             {
 
-                string filePathBotActive = "D:\\xampp\\htdocs\\PBL4\\php\\botActive.txt";
-                string filePathCommandBot = "D:\\xampp\\htdocs\\PBL4\\php\\commandBot.txt";
+                string filePathBotActive = "D:\\xampp\\htdocs\\PBL4_php_main\\txt\\botActive.txt";
+                string filePathCommandBot = "D:\\xampp\\htdocs\\PBL4_php_main\\txt\\commandBot.txt";
                 FileInfo fileInfo1 = new FileInfo(filePathBotActive);
                 FileInfo fileInfo2 = new FileInfo(filePathCommandBot);
                 if (isFinished == false)
