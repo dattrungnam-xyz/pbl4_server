@@ -49,6 +49,13 @@ namespace Server
             string rs = encoding.GetString(data);
             return rs;
         }
+        public static void checkServerOn(TcpListener listener)
+        {
+            while (true)
+            {
+                TcpClient tcplient = listener.AcceptTcpClient();
+            }    
+        }
         public static void handleConnectSocket(TcpListener listener)
         {
             while (true)
@@ -531,22 +538,28 @@ namespace Server
         {
             try
             {
+                string ipv4Address = GetLastIPv4Address();
+                IPAddress address = IPAddress.Parse(ipv4Address);
+                TcpListener listener2 = new TcpListener(address, 9668);
+                listener2.Start();
                 DB.resetCommandBot();
                 DB.resetBotStatus();
               //  IPAddress address = IPAddress.Parse("172.20.10.4");
                 //IPAddress address = IPAddress.Parse("10.10.28.178");
-                string ipv4Address = GetLastIPv4Address();
-                IPAddress address = IPAddress.Parse(ipv4Address);
+
 
                 TcpListener listener = new TcpListener(address, PORT_NUMBER);
-
                 listener.Start();
-
+          
                 Console.WriteLine("Server started on " + listener.LocalEndpoint);
                 Console.WriteLine("Waiting for a connection...");
 
                 Thread th_server_listener = new Thread(() => handleConnectSocket(listener));
                 th_server_listener.Start();
+
+
+                Thread th_check_port = new Thread(() => checkServerOn(listener2));
+                th_check_port.Start();
 
                 Thread th_server_handleCommand = new Thread(() => handleControlBot(listener));
                 th_server_handleCommand.Start();
